@@ -19,7 +19,6 @@ from mlflow.utils.validation import MAX_PARAM_VAL_LENGTH
 from kedro_mlflow.config.kedro_mlflow_config import KedroMlflowConfig
 from kedro_mlflow.framework.hooks.utils import (
     _assert_mlflow_enabled,
-    _flatten_dict,
     _generate_kedro_command,
 )
 from kedro_mlflow.io.catalog.switch_catalog_logging import switch_catalog_logging
@@ -30,6 +29,7 @@ from kedro_mlflow.io.metrics import (
 )
 from kedro_mlflow.mlflow import KedroPipelineModel
 from kedro_mlflow.pipeline.pipeline_ml import PipelineML
+from kedro_mlflow.utils import _flatten_dict
 
 LOGGER = getLogger(__name__)
 
