@@ -1,11 +1,37 @@
-from typing import Any, Dict, Optional
+import copy
+from typing import Any, Dict, Optional, Union
 
 import mlflow
 from kedro.io.core import DataSetError
+from mlflow.models import ModelSignature
+from mlflow.models.utils import ModelInputExample
 
 from kedro_mlflow.io.models.mlflow_abstract_model_dataset import (
     MlflowAbstractModelDataSet,
 )
+
+
+class MlflowModel:
+    """Dynamic ``Mlflow`` model args for the ``log_model`` function."""
+
+    def __init__(
+        self,
+        model: Any,
+        signature: Optional[ModelSignature] = None,
+        input_example: Optional[ModelInputExample] = None,
+        await_registration_for: Optional[int] = None,
+        **kwargs,
+    ):
+        """Initialize the MlflowModel."""
+        self.model = model
+        self.kwargs = copy.deepcopy(kwargs)
+
+        if signature is not None:
+            self.kwargs["signature"] = signature
+        if input_example is not None:
+            self.kwargs["input_example"] = input_example
+        if await_registration_for is not None:
+            self.kwargs["await_registration_for"] = await_registration_for
 
 
 class MlflowModelLoggerDataSet(MlflowAbstractModelDataSet):
@@ -15,7 +41,7 @@ class MlflowModelLoggerDataSet(MlflowAbstractModelDataSet):
         self,
         flavor: str,
         run_id: Optional[str] = None,
-        artifact_path: Optional[str] = "model",
+        artifact_path: Optional[str] = None,
         pyfunc_workflow: Optional[str] = None,
         load_args: Optional[Dict[str, Any]] = None,
         save_args: Optional[Dict[str, Any]] = None,
@@ -54,11 +80,19 @@ class MlflowModelLoggerDataSet(MlflowAbstractModelDataSet):
         )
 
         self._run_id = run_id
-        self._artifact_path = artifact_path
+        self._artifact_path = artifact_path or "model"
 
         # drop the key which MUST be common to save and load and
         #  thus is instantiated outside save_args
         self._save_args.pop("artifact_path", None)
+
+    @property
+    def _safe_pyfunc_workflow(self) -> str:
+        """Get the pyfunc workflow."""
+        assert isinstance(
+            self._pyfunc_workflow, str
+        ), "'pyfunc_workflow' must be specified."
+        return self._pyfunc_workflow
 
     @property
     def model_uri(self):
@@ -94,7 +128,7 @@ class MlflowModelLoggerDataSet(MlflowAbstractModelDataSet):
             model_uri=self.model_uri, **self._load_args
         )
 
-    def _save(self, model: Any) -> None:
+    def _save(self, model: Union[Any, MlflowModel]) -> None:
         """Save a model to local path and then logs it to MLflow.
 
         Args:
@@ -122,24 +156,27 @@ class MlflowModelLoggerDataSet(MlflowAbstractModelDataSet):
             # OR open automatically a new run to log
             self._save_model_in_run(model)
 
-    def _save_model_in_run(self, model):
+    def _save_model_in_run(self, model: Union[Any, MlflowModel]):
+        kwargs = {
+            "artifact_path": self._artifact_path,
+            **self._save_args,
+        }
+        if isinstance(model, MlflowModel):
+            model = model.model
+            kwargs.update(model.kwargs)
 
         if self._flavor == "mlflow.pyfunc":
             # PyFunc models utilise either `python_model` or `loader_module`
             # workflow. We we assign the passed `model` object to one of those keys
             # depending on the chosen `pyfunc_workflow`.
-            self._save_args[self._pyfunc_workflow] = model
+            kwargs[self._safe_pyfunc_workflow] = model
             if self._logging_activated:
-                self._mlflow_model_module.log_model(
-                    self._artifact_path, **self._save_args
-                )
+                self._mlflow_model_module.log_model(**kwargs)
         else:
             # Otherwise we save using the common workflow where first argument is the
             # model object and second is the path.
             if self._logging_activated:
-                self._mlflow_model_module.log_model(
-                    model, self._artifact_path, **self._save_args
-                )
+                self._mlflow_model_module.log_model(model, **kwargs)
 
     def _describe(self) -> Dict[str, Any]:
         return dict(
