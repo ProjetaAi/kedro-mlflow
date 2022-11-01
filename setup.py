@@ -71,6 +71,7 @@ setup(
         # ],
         "kedro.hooks": [
             "mlflow_hook = kedro_mlflow.framework.hooks.mlflow_hook:mlflow_hook",
+            "mlflow_partitioned_hook = kedro_mlflow.framework.hooks.mlflow_partitioned_hook:mlflow_partitioned_hook",
         ],
         "kedro.line_magic": [
             "line_magic = kedro_mlflow.extras.extensions.ipython:reload_kedro_mlflow"
