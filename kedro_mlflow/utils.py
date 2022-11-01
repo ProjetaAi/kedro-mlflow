@@ -14,10 +14,10 @@ def _parse_requirements(path: Union[str, Path], encoding="utf-8") -> List:
 
 def _flatten_dict(d: Dict, recursive: bool = True, sep: str = ".") -> Dict:
     def reducer(k1: str, k2: str):
-        return f"{k1}{sep}{k2}" if k1 else k2
+        return f"{k1}{sep}{k2}" if k1 else str(k2)
 
     return flatten_dict.flatten(
-        d, reducer=reducer, max_flatten_depth=(None if recursive else 1)
+        d, reducer=reducer, max_flatten_depth=(None if recursive else 2)
     )
 
 
