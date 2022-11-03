@@ -1,4 +1,5 @@
-from typing import Any, Callable, Dict, Iterable, Set, Type, Union, cast
+from pathlib import PurePosixPath
+from typing import Any, Callable, Dict, Iterable, Set, Type, Union
 
 import mlflow
 import mlflow.tracking.fluent as mlflow_fluent
@@ -23,7 +24,7 @@ class _ProtectedDict(dict):
 
     def __setitem__(self, key, value):
         if key not in self.protected:
-            super().__setitem__(key, value)
+            super().__setitem__(key, value)  # pragma: no cover
 
     def __deepcopy__(self, _) -> "_ProtectedDict":
         return _ProtectedDict({**self}, self.protected)
@@ -37,7 +38,7 @@ class MlflowPartitionedDataSet(PartitionedDataSet):
         data_set: Union[str, Type[AbstractDataSet], Dict[str, Any]],
         credentials: Dict[str, Any] = None,
         load_args: Dict[str, Any] = None,
-        parent_run_id: str = None,
+        run_id: str = None,
         dynamic_parameters: Set[str] = None,
     ):
         """Initialize the Kedro MlflowPartitionedDataSet.
@@ -54,29 +55,28 @@ class MlflowPartitionedDataSet(PartitionedDataSet):
                 replaced with the partition name. Defaults to None.
         """
         super().__init__("", data_set, "", "", credentials, load_args, None, False)
-        self._parent_run_id = parent_run_id
-        self._dynamic_parameters = set(dynamic_parameters) if dynamic_parameters else {}
+        self._run_id = run_id
+        self._dynamic_parameters = dynamic_parameters or set()
 
     @property
     def parent(self) -> Run:
         """Gets the parent to run the child runs under."""
-        return (
-            mlflow.get_run(self._parent_run_id)
-            if self._parent_run_id
-            else cast(
-                Run,
-                mlflow_fluent._active_run_stack[0],  # pylint: disable=protected-access
-            )
-        )
+        mlflow.active_run()
+        if self._run_id:
+            return mlflow.get_run(self._run_id)
+        else:
+            if mlflow_fluent._active_run_stack:
+                # can't take the top of the stack because of race conditions
+                return mlflow_fluent._active_run_stack[0]
+            else:
+                return mlflow.start_run(nested=True)
 
-    @parent.setter
-    def parent(self, run: Union[Run, str]):
-        """Sets the run to use as the parent for child runs."""
-        self._parent_run_id = run.info.run_id if isinstance(run, Run) else run
-
-    def _subname(self, partition: str, suffix: str) -> str:
+    def _subname(self, partition: str, suffix: str, sep: str = "\\") -> str:
         """Gets a subname from a partition and a property."""
-        return "/".join([part for part in [partition, suffix] if bool(part)])
+        return sep.join((PurePosixPath(partition) / suffix).parts)
+
+    def _normalize(self, name: str, sep: str = "\\") -> str:
+        return self._subname(name, "", sep=sep)
 
     def _new_child_dataset(
         self, child_name: str, extra: Dict[str, Any] = None
@@ -132,15 +132,13 @@ class MlflowPartitionedDataSet(PartitionedDataSet):
         )
 
     def _save(self, data: Dict[str, Any]) -> None:
-        for child_name, child_data in data.items():
+        for partition, child_data in data.items():
+            child_name = self._normalize(partition)
             with self.start_child_run(child_name):
                 self._new_child_dataset(child_name).save(child_data)
 
-    # TODO: Get the most recent run
     def _load(self) -> Dict[str, Callable[..., Any]]:
         return {
-            child_name: lambda: self._new_child_dataset(
-                child_name, {"run_id": child_id}
-            ).load()
+            child_name: self._new_child_dataset(child_name, {"run_id": child_id}).load
             for child_name, child_id in self.find_children().items()
         }

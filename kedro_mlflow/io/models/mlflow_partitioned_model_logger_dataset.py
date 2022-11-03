@@ -11,7 +11,7 @@ class MlflowPartitionedModelLoggerDataSet(MlflowPartitionedDataSet):
         data_set: Dict[str, Any] = {},
         credentials: Dict[str, Any] = None,
         load_args: Dict[str, Any] = None,
-        parent_run_id: str = None,
+        run_id: str = None,
     ):
         """Initialize the Kedro ``MlflowPartitionedModelLoggerDataSet``.
 
@@ -24,11 +24,9 @@ class MlflowPartitionedModelLoggerDataSet(MlflowPartitionedDataSet):
                 underlying dataset. Defaults to None.
             pyfunc_workflow (str, optional): Either `python_model` or `loader_module`.
                 See https://www.mlflow.org/docs/latest/python_api/mlflow.pyfunc.html#workflows.
-            parent_run_id (str, optional): The run ID of the parent run, if not
+            run_id (str, optional): The run ID of the parent run, if not
                 specified equals to top of the active runs stack. Defaults to None.
         """
-        assert "flavor" in data_set, "flavor must be specified in dataset"
-
         super().__init__(
             {
                 "type": "kedro_mlflow.io.models.MlflowModelLoggerDataSet",
@@ -36,6 +34,10 @@ class MlflowPartitionedModelLoggerDataSet(MlflowPartitionedDataSet):
             },
             credentials,
             load_args,
-            parent_run_id,
+            run_id,
             {"save_args.registered_model_name"},
         )
+        self._validate()
+
+    def _validate(self):
+        self._new_child_dataset("check")
