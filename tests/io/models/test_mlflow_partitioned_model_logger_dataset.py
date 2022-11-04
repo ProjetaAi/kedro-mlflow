@@ -63,7 +63,7 @@ def sklearn_ds(
     )
 
 
-def test_partitioned_save_and_load(
+def test_partitioned_model_save_and_load(
     run_id: str,
     linreg_model_a: LinearRegression,
     linreg_model_b: LinearRegression,
@@ -84,7 +84,7 @@ def test_partitioned_save_and_load(
     assert regressors["b"].predict([[1, 2]]) == pytest.approx([3])
 
 
-def test_partitioned_save_multiple_times_and_load(
+def test_partitioned_model_save_multiple_times_and_load(
     run_id: str,
     linreg_model_a: LinearRegression,
     linreg_model_b: LinearRegression,
@@ -106,7 +106,7 @@ def test_partitioned_save_multiple_times_and_load(
     assert regs2["b"]().predict([[1, 2]]) == regs["a"]().predict([[1, 2]])
 
 
-def test_partitioned_dynamic_registered_name(
+def test_partitioned_model_dynamic_registered_name(
     run_id: str,
     linreg_model_a: LinearRegression,
     linreg_model_b: LinearRegression,
@@ -128,12 +128,12 @@ def test_partitioned_dynamic_registered_name(
     assert regressors["b\\test"].predict([[1, 2]]) == pytest.approx([3])
 
 
-def test_partitioned_validation():
+def test_partitioned_model_validation():
     with pytest.raises(DataSetError):
         sklearn_ds(data_set={"flavor": "mlflow.whoops"})
 
 
-def test_partitioned_create_run(
+def test_partitioned_model_create_run(
     linreg_model_a: LinearRegression, linreg_model_b: LinearRegression
 ):
     ds = sklearn_ds()
@@ -153,7 +153,9 @@ def test_partitioned_create_run(
     assert regressors["b"].predict([[1, 2]]) == pytest.approx([3])
 
 
-def test_partitioned_normalized_names(run_id: str, linreg_model_a: LinearRegression):
+def test_partitioned_model_normalized_names(
+    run_id: str, linreg_model_a: LinearRegression
+):
     ds = sklearn_ds(data_set={"save_args": {"registered_model_name": "test"}})
     ds.save({"a/b/c": linreg_model_a})
 
