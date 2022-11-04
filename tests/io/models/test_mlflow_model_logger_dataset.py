@@ -10,7 +10,7 @@ from kedro.pipeline import Pipeline, node
 from mlflow.tracking import MlflowClient
 from sklearn.linear_model import LinearRegression
 
-from kedro_mlflow.io.models import MlflowModelLoggerDataSet
+from kedro_mlflow.io.models import MlflowModel, MlflowModelLoggerDataSet
 from kedro_mlflow.mlflow import KedroPipelineModel
 from kedro_mlflow.pipeline import pipeline_ml_factory
 
@@ -399,3 +399,19 @@ def test_mlflow_model_logger_logging_deactivation_is_bool():
 
     with pytest.raises(ValueError, match="_logging_activated must be a boolean"):
         mlflow_model_logger_dataset._logging_activated = "hello"
+
+
+def test_mlflow_model_logger_logging_mlflowmodel():
+    ds = MlflowModelLoggerDataSet(flavor="mlflow.sklearn")
+    with pytest.raises(
+        DataSetError, match=".*unexpected keyword argument 'unknown_argument'"
+    ):
+        ds.save(
+            MlflowModel(
+                model=10,
+                signature=2,
+                input_example=3,
+                await_registration_for=4,
+                unknown_argument=5,
+            )
+        )

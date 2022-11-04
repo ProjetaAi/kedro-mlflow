@@ -162,8 +162,8 @@ class MlflowModelLoggerDataSet(MlflowAbstractModelDataSet):
             **self._save_args,
         }
         if isinstance(model, MlflowModel):
-            model = model.model
             kwargs.update(model.kwargs)
+            model = model.model
 
         if self._flavor == "mlflow.pyfunc":
             # PyFunc models utilise either `python_model` or `loader_module`
