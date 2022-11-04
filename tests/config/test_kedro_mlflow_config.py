@@ -1,12 +1,13 @@
 import os
 
 import mlflow
+import pytest
 import yaml
 from kedro.framework.session import KedroSession
 from kedro.framework.startup import bootstrap_project
 from mlflow.tracking import MlflowClient
 
-from kedro_mlflow.config.kedro_mlflow_config import KedroMlflowConfig, _validate_uri
+from kedro_mlflow.config.kedro_mlflow_config import KedroMlflowConfig, _get_uri
 
 
 def test_kedro_mlflow_config_init():
@@ -246,32 +247,44 @@ def test_kedro_mlflow_config_setup_tracking_priority(kedro_project_with_mlflow_c
 
 def test_validate_uri_local_relative_path(kedro_project_with_mlflow_conf):
 
-    validated_uri = _validate_uri(
-        uri=r"mlruns", project_path=kedro_project_with_mlflow_conf
+    validated_uri = _get_uri(
+        type="tracking_uri",
+        credentials={},
+        uri=r"mlruns",
+        project_path=kedro_project_with_mlflow_conf,
     )
     assert validated_uri == (kedro_project_with_mlflow_conf / "mlruns").as_uri()
 
 
 def test_validate_uri_local_absolute_posix(kedro_project_with_mlflow_conf, tmp_path):
 
-    validated_uri = _validate_uri(
-        uri=tmp_path.as_posix(), project_path=kedro_project_with_mlflow_conf
+    validated_uri = _get_uri(
+        type="tracking_uri",
+        credentials={},
+        uri=tmp_path.as_posix(),
+        project_path=kedro_project_with_mlflow_conf,
     )
     assert validated_uri == tmp_path.as_uri()
 
 
 def test_validate_uri_local_absolute_uri(kedro_project_with_mlflow_conf, tmp_path):
 
-    validated_uri = _validate_uri(
-        uri=tmp_path.as_uri(), project_path=kedro_project_with_mlflow_conf
+    validated_uri = _get_uri(
+        credentials={},
+        type="tracking_uri",
+        uri=tmp_path.as_uri(),
+        project_path=kedro_project_with_mlflow_conf,
     )
     assert validated_uri == tmp_path.as_uri()
 
 
 def test_kedro_mlflow_config_validate_uri_databricks(kedro_project_with_mlflow_conf):
     # databricks is a reseved keyword which should not be modified
-    config_uri = _validate_uri(
-        uri="databricks", project_path=kedro_project_with_mlflow_conf
+    config_uri = _get_uri(
+        type="tracking_uri",
+        uri="databricks",
+        project_path=kedro_project_with_mlflow_conf,
+        credentials={},
     )
     assert config_uri == "databricks"
 
@@ -282,3 +295,22 @@ def test_from_dict_to_dict_idempotent(kedro_project_with_mlflow_conf):
     # modify config
     reloaded_config = KedroMlflowConfig.parse_obj(original_config_dict)
     assert config == reloaded_config
+
+
+def test_kedro_mlflow_config_connection_import_error(
+    kedro_project_with_mlflow_conf, mocker
+):
+    def error():
+        raise Exception("whoops!")
+
+    mocker.patch("kedro_mlflow.utils._load_plugins", return_value={"a": error})
+
+    with pytest.raises(
+        ImportError, match=".*Failed to load KedroMlflowConnection plugin 'a'"
+    ):
+        _get_uri(
+            type="tracking_uri",
+            uri="a",
+            project_path=kedro_project_with_mlflow_conf,
+            credentials={},
+        )
