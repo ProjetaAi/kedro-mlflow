@@ -68,6 +68,9 @@ setup(
         "kedro.hooks": [
             "mlflow_hook = kedro_mlflow.framework.hooks.mlflow_hook:mlflow_hook",
         ],
+        "kedro_mlflow.connections": [
+            "databricks = kedro_mlflow.config.databricks:databricks_connection",
+        ],
     },
     zip_safe=False,
     keywords="kedro-plugin, mlflow, model versioning, model packaging, pipelines, machine learning, data pipelines, data science, data engineering",
