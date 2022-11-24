@@ -59,6 +59,10 @@ setup(
             "pre-commit>=2.0.0,<3.0.0",
             "jupyter>=1.0.0,<2.0.0",
         ],
+        "azureml": [
+            "azureml-core",
+            "azureml-mlflow",
+        ],
     },
     author="Yolan Honoré-Rougé",
     entry_points={
@@ -70,6 +74,7 @@ setup(
         ],
         "kedro_mlflow.connections": [
             "databricks = kedro_mlflow.config.databricks:databricks_connection",
+            "azureml = kedro_mlflow.config.azureml:azureml_connection",
         ],
     },
     zip_safe=False,
