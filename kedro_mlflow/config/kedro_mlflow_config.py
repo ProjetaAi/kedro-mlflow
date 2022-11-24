@@ -2,7 +2,7 @@ import os
 from functools import lru_cache
 from logging import getLogger
 from pathlib import Path, PurePath
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 import mlflow
@@ -26,6 +26,7 @@ class MlflowServerOptions(BaseModel):
     # mutable default is ok for pydantic : https://stackoverflow.com/questions/63793662/how-to-give-a-pydantic-list-field-a-default-value
     mlflow_tracking_uri: Optional[str] = None
     mlflow_registry_uri: Optional[str] = None
+    connection: Optional[Dict[str, Any]] = None
     credentials: Optional[str] = None
     _mlflow_client: MlflowClient = PrivateAttr()
 
@@ -122,18 +123,20 @@ class KedroMlflowConfig(BaseModel):
             mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "mlruns")
 
         self.server.mlflow_tracking_uri = _get_uri(
-            type="tracking_uri",
+            attr="tracking_uri",
             uri=mlflow_tracking_uri,
             credentials=self._get_credentials(context),
+            options=self.server.connection,
             project_path=context.project_path,
         )
 
         # Manage the registry uri: if None, it will use the tracking
         if self.server.mlflow_registry_uri is not None:
             self.server.mlflow_registry_uri = _get_uri(
-                type="registry_uri",
+                attr="registry_uri",
                 uri=self.server.mlflow_registry_uri,
                 credentials=self._get_credentials(context),
+                options=self.server.connection,
                 project_path=context.project_path,
             )
 
@@ -207,10 +210,10 @@ def _get_connection(keyword: str) -> Optional[KedroMlflowConnection]:
 
     try:
         return plugin()
-    except Exception as e:
+    except Exception as exc:
         raise ImportError(
             f"Failed to load KedroMlflowConnection plugin '{keyword}'"
-        ) from e
+        ) from exc
 
 
 def _validate_uri(project_path: str, uri: Optional[str]) -> str:
@@ -247,12 +250,27 @@ def _validate_uri(project_path: str, uri: Optional[str]) -> str:
 
 
 def _get_uri(
-    type: Literal["tracking_uri", "registry_uri"],
+    attr: str,
     uri: Optional[str],
-    credentials: dict,
+    options: Optional[Dict[str, Any]],
+    credentials: Optional[Dict[str, Any]],
     project_path: str,
-):
+) -> str:
+    """Get an mlflow uri from a configuration file.
+
+    Args:
+        attr (str): Attribute to retrieve from the connection if it exists.
+            - tracking_uri
+            - registry_uri
+        uri (Optional[str]): Specified uri or connection keyword
+        options (Optional[Dict[str, Any]]): Options to pass to the connection
+        credentials (Optional[Dict[str, Any]]): Credentials to pass to the connection
+        project_path (str): Path to the project
+
+    Returns:
+        str: mlflow uri
+    """
     conn = _get_connection(uri)
     if conn:
-        return getattr(conn, type)(credentials)
+        return getattr(conn, attr)(credentials or {}, options or {})
     return _validate_uri(project_path, uri)

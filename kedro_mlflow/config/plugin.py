@@ -1,5 +1,6 @@
 import abc
-from typing import Dict
+import os
+from typing import Any, Dict
 
 
 class KedroMlflowConnection(abc.ABC):
@@ -15,11 +16,42 @@ class KedroMlflowConnection(abc.ABC):
     setting.
     """
 
-    @abc.abstractmethod
-    def tracking_uri(self, credentials: Dict[str, str] = None) -> str:
-        """URI to use for tracking."""
-        pass  # pragma: no cover
+    @staticmethod
+    def getkey(mapping: dict, key: str, envkey: str, default: Any = None) -> Any:
+        """Get a key from a dictionary or an environment variable.
 
-    def registry_uri(self, credentials: Dict[str, str] = None) -> str:
+        Args:
+            mapping (dict): Dictionary to get the key from.
+            key (str): Key to get.
+            envkey (str): Environment variable to get the key from.
+            default (Optional[Any]): Default value to return if the key is not found.
+
+        Returns:
+            Any: Value of the key.
+
+        Raises:
+            KeyError: If the key is not found and no default value is provided.
+        """
+        ret = mapping.get(key, os.environ.get(envkey, default))
+        if ret is None:
+            raise KeyError(
+                f"Key '{key}' not found in specified credentials nor in '{envkey}' "
+                "environment variable."
+            )
+        return ret
+
+    @abc.abstractmethod
+    def tracking_uri(
+        self,
+        credentials: Dict[str, str],
+        options: Dict[str, str],
+    ) -> str:
+        """URI to use for tracking."""
+
+    def registry_uri(
+        self,
+        credentials: Dict[str, str],
+        options: Dict[str, str],
+    ) -> str:
         """URI to use for registry."""
-        return self.tracking_uri()
+        return self.tracking_uri(credentials, options)
