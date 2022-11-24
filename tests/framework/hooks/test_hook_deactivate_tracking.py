@@ -282,7 +282,7 @@ def test_deactivated_tracking_but_not_for_given_pipeline(
         all_runs_id_beginning = set(
             [
                 run.run_id
-                for k in range(len(mlflow_client.list_experiments()))
+                for k in range(len(mlflow_client.search_experiments()))
                 for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
             ]
         )
@@ -292,7 +292,7 @@ def test_deactivated_tracking_but_not_for_given_pipeline(
         all_runs_id_end = set(
             [
                 run.run_id
-                for k in range(len(mlflow_client.list_experiments()))
+                for k in range(len(mlflow_client.search_experiments()))
                 for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
             ]
         )
@@ -313,7 +313,7 @@ def test_deactivated_tracking_for_given_pipeline(
         all_runs_id_beginning = set(
             [
                 run.run_id
-                for k in range(len(mlflow_client.list_experiments()))
+                for k in range(len(mlflow_client.search_experiments()))
                 for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
             ]
         )
@@ -323,7 +323,7 @@ def test_deactivated_tracking_for_given_pipeline(
         all_runs_id_end = set(
             [
                 run.run_id
-                for k in range(len(mlflow_client.list_experiments()))
+                for k in range(len(mlflow_client.search_experiments()))
                 for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
             ]
         )

@@ -376,7 +376,7 @@ def test_mlflow_model_logger_logging_deactivation(tracking_uri, linreg_model):
     all_runs_id_beginning = set(
         [
             run.run_id
-            for k in range(len(mlflow_client.list_experiments()))
+            for k in range(len(mlflow_client.search_experiments()))
             for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
         ]
     )
@@ -386,7 +386,7 @@ def test_mlflow_model_logger_logging_deactivation(tracking_uri, linreg_model):
     all_runs_id_end = set(
         [
             run.run_id
-            for k in range(len(mlflow_client.list_experiments()))
+            for k in range(len(mlflow_client.search_experiments()))
             for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
         ]
     )

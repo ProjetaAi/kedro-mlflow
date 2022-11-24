@@ -19,6 +19,7 @@ def test_kedro_mlflow_config_init():
             mlflow_tracking_uri=None,  # not setup, not modified yet
             mlflow_registry_uri=None,
             credentials=None,
+            connection=None,
         ),
         tracking=dict(
             disable_tracking=dict(pipelines=[]),
@@ -52,7 +53,7 @@ def test_kedro_mlflow_config_new_experiment_does_not_exists(
         config.setup(context)
 
     assert "exp1" in [
-        exp.name for exp in config.server._mlflow_client.list_experiments()
+        exp.name for exp in config.server._mlflow_client.search_experiments()
     ]
 
 
@@ -91,7 +92,7 @@ def test_kedro_mlflow_config_experiment_exists(kedro_project_with_mlflow_conf):
         config.setup(context)
 
     assert "exp1" in [
-        exp.name for exp in config.server._mlflow_client.list_experiments()
+        exp.name for exp in config.server._mlflow_client.search_experiments()
     ]
 
 
@@ -117,7 +118,7 @@ def test_kedro_mlflow_config_experiment_was_deleted(kedro_project_with_mlflow_co
         config.setup(context)
 
     assert "exp1" in [
-        exp.name for exp in config.server._mlflow_client.list_experiments()
+        exp.name for exp in config.server._mlflow_client.search_experiments()
     ]
 
 
@@ -248,7 +249,8 @@ def test_kedro_mlflow_config_setup_tracking_priority(kedro_project_with_mlflow_c
 def test_validate_uri_local_relative_path(kedro_project_with_mlflow_conf):
 
     validated_uri = _get_uri(
-        type="tracking_uri",
+        attr="tracking_uri",
+        options={},
         credentials={},
         uri=r"mlruns",
         project_path=kedro_project_with_mlflow_conf,
@@ -259,7 +261,8 @@ def test_validate_uri_local_relative_path(kedro_project_with_mlflow_conf):
 def test_validate_uri_local_absolute_posix(kedro_project_with_mlflow_conf, tmp_path):
 
     validated_uri = _get_uri(
-        type="tracking_uri",
+        attr="tracking_uri",
+        options={},
         credentials={},
         uri=tmp_path.as_posix(),
         project_path=kedro_project_with_mlflow_conf,
@@ -271,7 +274,8 @@ def test_validate_uri_local_absolute_uri(kedro_project_with_mlflow_conf, tmp_pat
 
     validated_uri = _get_uri(
         credentials={},
-        type="tracking_uri",
+        options={},
+        attr="tracking_uri",
         uri=tmp_path.as_uri(),
         project_path=kedro_project_with_mlflow_conf,
     )
@@ -281,9 +285,10 @@ def test_validate_uri_local_absolute_uri(kedro_project_with_mlflow_conf, tmp_pat
 def test_kedro_mlflow_config_validate_uri_databricks(kedro_project_with_mlflow_conf):
     # databricks is a reseved keyword which should not be modified
     config_uri = _get_uri(
-        type="tracking_uri",
+        attr="tracking_uri",
         uri="databricks",
         project_path=kedro_project_with_mlflow_conf,
+        options={},
         credentials={},
     )
     assert config_uri == "databricks"
@@ -309,8 +314,9 @@ def test_kedro_mlflow_config_connection_import_error(
         ImportError, match=".*Failed to load KedroMlflowConnection plugin 'a'"
     ):
         _get_uri(
-            type="tracking_uri",
+            attr="tracking_uri",
             uri="a",
             project_path=kedro_project_with_mlflow_conf,
+            options={},
             credentials={},
         )
