@@ -158,3 +158,32 @@ my_model:
     filepath: path/to/where/you/want/model
     version: <valid-kedro-version>
 ```
+
+### ``MlflowPartitionedModelLoggerDataSet``
+
+The ``MlflowPartitionedModelLoggerDataSet`` accepts the following arguments:
+
+- data_set (Dict[str, Any], optional): Kwargs to be passed to the underlying `MlflowModelLoggerDataSet` `__init__`. Defaults to None.
+- credentials (Dict[str, Any], optional): Credentials to be passed to the underlying `MlflowModelLoggerDataSet` instance. Defaults to None.
+- load_args (Dict[str, Any], optional): Arguments to `load` function from specified `data_set`. Defaults to None.
+- run_id (str, optional): MLFlow run ID to be used as the parent run. Defaults to None.
+
+```{note}
+the ``data_set`` argument doesn't require `type` to be specified, as it will be automatically set to `MlflowModelLoggerDataSet`
+```
+
+You can see a more detailed example in [dynamic versioning](../04_experimentation_tracking/07_dynamic_versioning.md#model-registry)
+
+## Partitioned
+
+### ``MlflowPartitionedDataSet``
+
+The ``MlflowPartitionedDataSet`` accepts the following arguments:
+
+- data_set (Union[AbstractDataSet, str, Dict[str, Any]]): The dataset to be partitioned. Can be a dataset instance, a dataset type or a dictionary of the form `{'type': 'DataSetType', **kwargs}`.
+- credentials (Dict[str, Any], optional): Credentials to pass to the underlying dataset. Defaults to None.
+- load_args (Dict[str, Any], optional): Arguments to `load` function from specified `data_set`. Defaults to None.
+- run_id (str, optional): MLFlow run ID to be used as the parent run. Defaults to None.
+- dynamic_parameters (Dict[str, Any], optional): Parameters passed to the underlying dataset you want to be prefixed with the partition name. Defaults to None.
+
+You can see a more detailed example in [dynamic versioning](../04_experimentation_tracking/07_dynamic_versioning.md#how-to-use-dynamic-versioning)

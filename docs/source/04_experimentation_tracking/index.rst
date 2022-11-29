@@ -10,3 +10,4 @@ Introduction
    Version models <04_version_models.md>
    Version metrics <05_version_metrics.md>
    Open the User Interface <06_mlflow_ui.md>
+   Dynamic versioning <07_dynamic_versioning.md>
