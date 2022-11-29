@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2022-09-06
+
+### Added
+
+-   :loud_sound: `kedro-mlflow` now supports partitioned datasets for metrics and models. See [Dynamic Versioning](https://kedro-mlflow.readthedocs.io/en/latest/04_experimentation_tracking/07_dynamic_versioning.html) for more details.
+
 ## [0.11.3] - 2022-09-06
 
 ### Changed
