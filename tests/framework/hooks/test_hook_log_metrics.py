@@ -234,9 +234,9 @@ def test_mlflow_hook_metrics_dataset_with_run_id(
         # is create  in kedro_project experiment (id 1)
         all_runs_id = set(
             [
-                run.run_id
+                run.info.run_id
                 for k in range(2)
-                for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
+                for run in mlflow_client.search_runs(experiment_ids=[f"{k}"])
             ]
         )
 

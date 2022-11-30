@@ -140,23 +140,23 @@ def test_kedro_mlflow_config_setup_set_experiment_globally(
         config.setup(context)
 
     mlflow_client = MlflowClient(mlflow_tracking_uri)
-    runs_list_before_interactive_run = mlflow_client.list_run_infos(
-        config.tracking.experiment._experiment.experiment_id
+    runs_list_before_interactive_run = mlflow_client.search_runs(
+        [config.tracking.experiment._experiment.experiment_id]
     )
 
     with mlflow.start_run():
         mlflow.log_param("a", 1)
         my_run_id = mlflow.active_run().info.run_id
 
-    runs_list_after_interactive_run = mlflow_client.list_run_infos(
-        config.tracking.experiment._experiment.experiment_id
+    runs_list_after_interactive_run = mlflow_client.search_runs(
+        [config.tracking.experiment._experiment.experiment_id]
     )
 
     assert (
         len(runs_list_after_interactive_run) - len(runs_list_before_interactive_run)
         == 1
     )
-    assert runs_list_after_interactive_run[0].run_id == my_run_id
+    assert runs_list_after_interactive_run[0].info.run_id == my_run_id
 
 
 def test_kedro_mlflow_config_setup_set_tracking_uri(kedro_project_with_mlflow_conf):
