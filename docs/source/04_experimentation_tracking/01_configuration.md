@@ -58,6 +58,10 @@ server:
 
 For safety reasons, the credentials will not be accessible within `KedroMlflowConfig` objects. They will be exported as environment variables *on the fly* when running the pipeline.
 
+#### Connections
+
+You can also use what we call, a connection plugin, to connect to a mlflow tracking server instead of specifying a static `mlflow_tracking_uri` directly in the `mlflow.yml` file. This is useful if you want the URI to be dynamic or to simplify the configuration of your project. You can find more information about connections [here](../04_experimentation_tracking/07_connections.md).
+
 ### Deactivate tracking under conditions
 
 `kedro-mlflow` logs every run parameters in mlflow. You may want to avoid tracking some runs (for instance while debugging to avoid polluting your mlflow database, or because some pipelines are not ml related and it does not makes sense to log their parameters).
