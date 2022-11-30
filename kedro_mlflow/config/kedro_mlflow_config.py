@@ -13,7 +13,7 @@ from pydantic import BaseModel, PrivateAttr, StrictBool
 from typing_extensions import Literal
 
 import kedro_mlflow.utils as utils
-from kedro_mlflow.config.plugin import KedroMlflowConnection
+from kedro_mlflow.config.connection import KedroMlflowConnection
 
 LOGGER = getLogger(__name__)
 

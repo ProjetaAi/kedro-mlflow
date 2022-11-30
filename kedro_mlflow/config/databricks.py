@@ -1,4 +1,4 @@
-from kedro_mlflow.config.plugin import KedroMlflowConnection
+from kedro_mlflow.config.connection import KedroMlflowConnection
 
 
 class DatabricksConnection(KedroMlflowConnection):

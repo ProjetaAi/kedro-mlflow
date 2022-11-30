@@ -1,1 +1,1 @@
-from .plugin import KedroMlflowConnection
+from .connection import KedroMlflowConnection
