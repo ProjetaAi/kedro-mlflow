@@ -6,6 +6,8 @@
 
 - :sparkles: Added an extra ``server.mlflow_registry_uri`` key in ``mlflow.yml`` to set the mlflow registry uri. ([#260](https://github.com/Galileo-Galilei/kedro-mlflow/issues/260))
 
+- :sparkles: Added connections to simplify the generation of URIs
+
 ### Fixed
 
 -   :bug: `MlflowArtifactDataSet.load()` now correctly loads the artifact when both `artifact_path` and `run_id` arguments are specified. Previous fix in ``0.11.4`` did not work because when the file already exist locally, mlflow did not download it again so tests were incorrectly passing ([#362](https://github.com/Galileo-Galilei/kedro-mlflow/issues/362))
