@@ -79,6 +79,7 @@ setup(
         ],
         "kedro.hooks": [
             "mlflow_hook = kedro_mlflow.framework.hooks.mlflow_hook:mlflow_hook",
+            "mlflow_partitioned_hook = kedro_mlflow.framework.hooks.mlflow_partitioned_hook:mlflow_partitioned_hook",
         ],
         "kedro_mlflow.connections": [
             "databricks = kedro_mlflow.config.databricks:databricks_connection",

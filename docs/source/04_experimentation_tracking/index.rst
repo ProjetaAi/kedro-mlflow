@@ -11,3 +11,4 @@ Introduction
    Version metrics <05_version_metrics.md>
    Open the User Interface <06_mlflow_ui.md>
    Connecting to services <07_connections.md>
+   Dynamic versioning <08_dynamic_versioning.md>

@@ -21,6 +21,11 @@
 ### Fixed
 
 -   :bug: `MlflowArtifactDataSet.load()` now correctly loads the artifact when both `artifact_path` and `run_id` arguments are specified instead of raising an error ([#362](https://github.com/Galileo-Galilei/kedro-mlflow/issues/362))
+## [0.12.0] - 2022-09-06
+
+### Added
+
+-   :loud_sound: `kedro-mlflow` now supports partitioned datasets for metrics and models. See [Dynamic Versioning](https://kedro-mlflow.readthedocs.io/en/latest/04_experimentation_tracking/07_dynamic_versioning.html) for more details.
 
 ## [0.11.3] - 2022-09-06
 

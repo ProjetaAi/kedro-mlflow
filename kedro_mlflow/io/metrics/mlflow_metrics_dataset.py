@@ -4,6 +4,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 import mlflow
 from kedro.io import AbstractDataSet, DataSetError
+from mlflow.entities import Metric
 from mlflow.tracking import MlflowClient
 
 MetricItem = Union[Dict[str, float], List[Dict[str, float]]]
@@ -64,24 +65,28 @@ class MlflowMetricsDataSet(AbstractDataSet):
             raise ValueError(f"_logging_activated must be a boolean, got {type(flag)}")
         self.__logging_activated = flag
 
+    def _list_all_metrics(self) -> List[str]:
+        """List all metrics from a run."""
+        client = MlflowClient()
+        run = client.get_run(self.run_id)
+        return list(run.data.metrics.keys())
+
+    def _list_metrics(self) -> List[str]:
+        """List all metrics prefixed with ``prefix`` from a run."""
+        return [m for m in self._list_all_metrics() if self._is_dataset_metric(m)]
+
+    def _load_metric(self, key: str) -> List[Metric]:
+        return MlflowClient().get_metric_history(self.run_id, key)
+
     def _load(self) -> MetricsDict:
         """Load MlflowMetricDataSet.
 
         Returns:
             Dict[str, Union[int, float]]: Dictionary with MLflow metrics dataset.
         """
-        client = MlflowClient()
-        run_id = self.run_id
-        all_metrics = client._tracking_client.store.get_all_metrics(run_uuid=run_id)
-        dataset_metrics = filter(self._is_dataset_metric, all_metrics)
         dataset = reduce(
-            lambda xs, x: self._update_metric(
-                # get_all_metrics returns last saved values per metric key.
-                # All values are required here.
-                client.get_metric_history(run_id, x.key),
-                xs,
-            ),
-            dataset_metrics,
+            lambda xs, x: self._update_metric(self._load_metric(x), xs),
+            self._list_metrics(),
             {},
         )
         return dataset
@@ -118,11 +123,7 @@ class MlflowMetricsDataSet(AbstractDataSet):
         Returns:
             bool: Is MLflow metrics dataset exists?
         """
-        client = MlflowClient()
-        all_metrics = client._tracking_client.store.get_all_metrics(
-            run_uuid=self.run_id
-        )
-        return any(self._is_dataset_metric(x) for x in all_metrics)
+        return bool(self._list_metrics())
 
     def _describe(self) -> Dict[str, Any]:
         """Describe MLflow metrics dataset.
@@ -135,20 +136,18 @@ class MlflowMetricsDataSet(AbstractDataSet):
             "prefix": self._prefix,
         }
 
-    def _is_dataset_metric(self, metric: mlflow.entities.Metric) -> bool:
+    def _is_dataset_metric(self, metric: str) -> bool:
         """Check if given metric belongs to dataset.
 
         Args:
-            metric (mlflow.entities.Metric): MLflow metric instance.
+            metric (str): MLflow metric instance.
         """
         return self._prefix is None or (
-            self._prefix and metric.key.startswith(self._prefix)
+            self._prefix and metric.startswith(self._prefix)
         )
 
     @staticmethod
-    def _update_metric(
-        metrics: List[mlflow.entities.Metric], dataset: MetricsDict = {}
-    ) -> MetricsDict:
+    def _update_metric(metrics: List[Metric], dataset: MetricsDict = {}) -> MetricsDict:
         """Update metric in given dataset.
 
         Args:

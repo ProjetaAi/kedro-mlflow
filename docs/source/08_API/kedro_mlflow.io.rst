@@ -41,7 +41,20 @@ Models DataSet
    :undoc-members:
    :show-inheritance:
 
+.. automodule:: kedro_mlflow.io.models.mlflow_partitioned_model_logger_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 .. automodule:: kedro_mlflow.io.models.mlflow_model_saver_dataset
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Partitioned DataSet
+--------------------
+
+.. automodule:: kedro_mlflow.io.partitioned.mlflow_partitioned_dataset
    :members:
    :undoc-members:
    :show-inheritance:
