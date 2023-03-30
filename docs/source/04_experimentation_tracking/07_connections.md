@@ -34,7 +34,7 @@ server:
 
 ### AzureML
 
-This connection uses the AzureML SDK v1 to calculate the URI from the Workspace object. It requires the following connection options:
+This connection uses the AzureML SDK v1 to calculate the URI from the Workspace object. It requires the following connection credential options:
 
 - `subscription_id`: The subscription id of the AzureML workspace
 - `resource_group`: The resource group of the AzureML workspace
