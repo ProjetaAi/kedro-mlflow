@@ -157,7 +157,8 @@ class KedroMlflowConfig(BaseModel):
 
     def _get_credentials(self, context: KedroContext) -> Dict[str, str]:
         credentials = context._get_config_credentials()
-        return credentials.get(self.server.credentials, {})
+        return credentials.get("server", {}).get(self.server.credentials, {})
+
 
     def _export_credentials(self, context: KedroContext):
         mlflow_creds = self._get_credentials(context)
@@ -272,5 +273,5 @@ def _get_uri(
     """
     conn = _get_connection(uri)
     if conn:
-        return getattr(conn, attr)(credentials or {}, options or {})
+        return getattr(conn, attr)(credentials)# or {}, options or {})
     return _validate_uri(project_path, uri)

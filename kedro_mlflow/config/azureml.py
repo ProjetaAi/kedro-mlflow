@@ -27,19 +27,19 @@ class AzureMLConnection(KedroMlflowConnection):
 
     def tracking_uri(
         self,
-        credentials: Dict[str, str],
-        options: Dict[str, str],
+        credentials: Dict[str, str]#,
+        # options: Dict[str, str],
     ) -> str:
         """URI to use for tracking."""
         ws = Workspace(
             subscription_id=self.getkey(
-                options, "subscription_id", "AZUREML_SUBSCRIPTION_ID"
+                credentials, "subscription_id", "AZUREML_SUBSCRIPTION_ID"
             ),
             resource_group=self.getkey(
-                options, "resource_group", "AZUREML_RESOURCE_GROUP"
+                credentials, "resource_group", "AZUREML_RESOURCE_GROUP"
             ),
             workspace_name=self.getkey(
-                options, "workspace_name", "AZUREML_WORKSPACE_NAME"
+                credentials, "workspace_name", "AZUREML_WORKSPACE_NAME"
             ),
         )
         return ws.get_mlflow_tracking_uri()
