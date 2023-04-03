@@ -105,7 +105,7 @@ def test_artifact_dataset_save_with_run_id(
     mlflow_csv_dataset.save(df1)
 
     # same tests as previously, bu no new experiments must have been created
-    runs_list = mlflow_client.list_run_infos(experiment_id="0")
+    runs_list = mlflow_client.search_runs(experiment_ids=["0"])
     run_artifacts = [
         fileinfo.path for fileinfo in mlflow_client.list_artifacts(run_id=run_id)
     ]
@@ -174,9 +174,9 @@ def test_artifact_dataset_logging_deactivation(tmp_path, tracking_uri):
 
     all_runs_id_beginning = set(
         [
-            run.run_id
-            for k in range(len(mlflow_client.list_experiments()))
-            for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
+            run.info.run_id
+            for k in range(len(mlflow_client.search_experiments()))
+            for run in mlflow_client.search_runs(experiment_ids=[f"{k}"])
         ]
     )
 
@@ -184,9 +184,9 @@ def test_artifact_dataset_logging_deactivation(tmp_path, tracking_uri):
 
     all_runs_id_end = set(
         [
-            run.run_id
-            for k in range(len(mlflow_client.list_experiments()))
-            for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
+            run.info.run_id
+            for k in range(len(mlflow_client.search_experiments()))
+            for run in mlflow_client.search_runs(experiment_ids=[f"{k}"])
         ]
     )
 

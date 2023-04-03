@@ -1,4 +1,5 @@
 import pathlib
+from itertools import chain
 
 from setuptools import find_packages, setup
 
@@ -21,6 +22,15 @@ base_requirements = _parse_requirements("requirements.txt")
 # Get the long description from the README file
 with open((HERE / "README.md").as_posix(), encoding="utf-8") as file_handler:
     README = file_handler.read()
+
+
+# Save the plugin requirements in order to reuse them in tests
+plugin_requirements = {
+    "azureml": [
+        "azureml-core>=1.45.0,<2.0.0",
+        "azureml-mlflow>=1.45.0,<2.0.0",
+    ]
+}
 
 
 setup(
@@ -54,11 +64,13 @@ setup(
             "flake8==5.0.4",  # ensure consistency with pre-commit
             "black==22.10.0",  # pin black version because it is not compatible with a pip range (because of non semver version number)
             "isort==5.10.1",  # ensure consistency with pre-commit
-        ],
+        ]
+        + list(set(chain(*plugin_requirements.values()))),
         "dev": [
             "pre-commit>=2.0.0,<3.0.0",
             "jupyter>=1.0.0,<2.0.0",
         ],
+        **plugin_requirements,
     },
     author="Yolan Honoré-Rougé",
     entry_points={
@@ -67,6 +79,11 @@ setup(
         ],
         "kedro.hooks": [
             "mlflow_hook = kedro_mlflow.framework.hooks.mlflow_hook:mlflow_hook",
+            "mlflow_partitioned_hook = kedro_mlflow.framework.hooks.mlflow_partitioned_hook:mlflow_partitioned_hook",
+        ],
+        "kedro_mlflow.connections": [
+            "databricks = kedro_mlflow.config.databricks:databricks_connection",
+            "azureml = kedro_mlflow.config.azureml:azureml_connection",
         ],
     },
     zip_safe=False,

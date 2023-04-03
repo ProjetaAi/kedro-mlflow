@@ -1,7 +1,8 @@
 import os
+from functools import lru_cache
 from logging import getLogger
 from pathlib import Path, PurePath
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 import mlflow
@@ -11,13 +12,21 @@ from mlflow.tracking.client import MlflowClient
 from pydantic import BaseModel, PrivateAttr, StrictBool
 from typing_extensions import Literal
 
+import kedro_mlflow.utils as utils
+from kedro_mlflow.config.connection import KedroMlflowConnection
+
 LOGGER = getLogger(__name__)
+
+ENTRY_POINTS = {
+    "CONNECTIONS": "kedro_mlflow.connections",
+}
 
 
 class MlflowServerOptions(BaseModel):
     # mutable default is ok for pydantic : https://stackoverflow.com/questions/63793662/how-to-give-a-pydantic-list-field-a-default-value
     mlflow_tracking_uri: Optional[str] = None
     mlflow_registry_uri: Optional[str] = None
+    connection: Optional[Dict[str, Any]] = None
     credentials: Optional[str] = None
     _mlflow_client: MlflowClient = PrivateAttr()
 
@@ -102,7 +111,7 @@ class KedroMlflowConfig(BaseModel):
         # raise an error if an unknown key is passed to the constructor
         extra = "forbid"
 
-    def setup(self, context):
+    def setup(self, context: KedroContext):
         """Setup all the mlflow configuration"""
 
         # Manage the tracking uri
@@ -113,14 +122,22 @@ class KedroMlflowConfig(BaseModel):
             # but we want 'project_path / "mlruns"'
             mlflow_tracking_uri = os.environ.get("MLFLOW_TRACKING_URI", "mlruns")
 
-        self.server.mlflow_tracking_uri = _validate_uri(
-            project_path=context.project_path, uri=mlflow_tracking_uri
+        self.server.mlflow_tracking_uri = _get_uri(
+            attr="tracking_uri",
+            uri=mlflow_tracking_uri,
+            credentials=self._get_credentials(context),
+            options=self.server.connection,
+            project_path=context.project_path,
         )
 
         # Manage the registry uri: if None, it will use the tracking
         if self.server.mlflow_registry_uri is not None:
-            self.server.mlflow_registry_uri = _validate_uri(
-                project_path=context.project_path, uri=self.server.mlflow_registry_uri
+            self.server.mlflow_registry_uri = _get_uri(
+                attr="registry_uri",
+                uri=self.server.mlflow_registry_uri,
+                credentials=self._get_credentials(context),
+                options=self.server.connection,
+                project_path=context.project_path,
             )
 
         # init after validating the uri, else mlflow creates a mlruns folder at the root
@@ -138,9 +155,13 @@ class KedroMlflowConfig(BaseModel):
 
         self._set_experiment()
 
+    def _get_credentials(self, context: KedroContext) -> Dict[str, str]:
+        credentials = context._get_config_credentials()
+        return credentials.get("server", {}).get(self.server.credentials, {})
+
+
     def _export_credentials(self, context: KedroContext):
-        conf_creds = context._get_config_credentials()
-        mlflow_creds = conf_creds.get(self.server.credentials, {})
+        mlflow_creds = self._get_credentials(context)
         for key, value in mlflow_creds.items():
             os.environ[key] = value
 
@@ -180,6 +201,22 @@ class KedroMlflowConfig(BaseModel):
         )
 
 
+@lru_cache(maxsize=None)
+def _get_connection(keyword: str) -> Optional[KedroMlflowConnection]:
+    """Return a dictionary of connection plugins."""
+    plugins = utils._load_plugins(ENTRY_POINTS["CONNECTIONS"])
+    plugin = plugins.get(keyword)
+    if plugin is None:
+        return None
+
+    try:
+        return plugin()
+    except Exception as exc:
+        raise ImportError(
+            f"Failed to load KedroMlflowConnection plugin '{keyword}'"
+        ) from exc
+
+
 def _validate_uri(project_path: str, uri: Optional[str]) -> str:
     """Format the uri provided to match mlflow expectations.
 
@@ -189,12 +226,6 @@ def _validate_uri(project_path: str, uri: Optional[str]) -> str:
     Returns:
         str -- A valid mlflow_tracking_uri
     """
-
-    if uri == "databricks":
-        # "databricks" is a special reserved keyword for mlflow which should not be converted to a path
-        # see: https://mlflow.org/docs/latest/tracking.html#where-runs-are-recorded
-        return uri
-
     # if no tracking uri is provided, we register the runs locally at the root of the project
     pathlib_uri = PurePath(uri)
 
@@ -217,3 +248,30 @@ def _validate_uri(project_path: str, uri: Optional[str]) -> str:
             valid_uri = uri
 
     return valid_uri
+
+
+def _get_uri(
+    attr: str,
+    uri: Optional[str],
+    options: Optional[Dict[str, Any]],
+    credentials: Optional[Dict[str, Any]],
+    project_path: str,
+) -> str:
+    """Get an mlflow uri from a configuration file.
+
+    Args:
+        attr (str): Attribute to retrieve from the connection if it exists.
+            - tracking_uri
+            - registry_uri
+        uri (Optional[str]): Specified uri or connection keyword
+        options (Optional[Dict[str, Any]]): Options to pass to the connection
+        credentials (Optional[Dict[str, Any]]): Credentials to pass to the connection
+        project_path (str): Path to the project
+
+    Returns:
+        str: mlflow uri
+    """
+    conn = _get_connection(uri)
+    if conn:
+        return getattr(conn, attr)(credentials)# or {}, options or {})
+    return _validate_uri(project_path, uri)

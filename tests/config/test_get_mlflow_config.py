@@ -29,6 +29,7 @@ def test_mlflow_config_default(kedro_project):
             mlflow_tracking_uri="mlruns",
             mlflow_registry_uri=None,
             credentials=None,
+            connection=None,
         ),
         tracking=dict(
             disable_tracking=dict(pipelines=["my_disabled_pipeline"]),
@@ -67,6 +68,7 @@ def test_mlflow_config_in_uninitialized_project(kedro_project, package_name):
             "mlflow_tracking_uri": (kedro_project / "mlruns").as_uri(),
             "mlflow_registry_uri": None,
             "credentials": None,
+            "connection": None,
         },
         "tracking": {
             "disable_tracking": {"pipelines": []},
@@ -96,6 +98,7 @@ def test_mlflow_config_with_no_experiment_name(kedro_project):
             "mlflow_tracking_uri": (kedro_project / "mlruns").as_uri(),
             "mlflow_registry_uri": None,
             "credentials": None,
+            "connection": None,
         },
         "tracking": {
             "disable_tracking": {"pipelines": []},
@@ -201,6 +204,7 @@ def test_mlflow_config_with_templated_config_loader(fake_project):
             mlflow_tracking_uri="${mlflow_tracking_uri}",
             mlflow_registry_uri=None,
             credentials=None,
+            connection=None,
         ),
         tracking=dict(
             disable_tracking=dict(pipelines=["my_disabled_pipeline"]),

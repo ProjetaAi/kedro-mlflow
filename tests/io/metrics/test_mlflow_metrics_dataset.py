@@ -69,6 +69,21 @@ def metrics3():
     return {"metric1": {"step": 0, "value": 1.1}}
 
 
+@pytest.fixture
+def sqlite_tracking_uri(tmp_path):
+    folder = tmp_path / "mlruns"
+    folder.mkdir(parents=True)
+    tracking_uri = f"sqlite:///{(folder / 'sqlite.db').as_posix()}"
+    return tracking_uri
+
+
+@pytest.fixture
+def sqlite_run_id(sqlite_tracking_uri: str):
+    mlflow.set_tracking_uri(sqlite_tracking_uri)
+    run_id = mlflow.start_run(nested=True).info.run_id
+    return run_id
+
+
 @pytest.mark.parametrize(
     "data, prefix",
     [
@@ -181,9 +196,9 @@ def test_mlflow_metrics_logging_deactivation(tracking_uri, metrics):
 
     all_runs_id_beginning = set(
         [
-            run.run_id
-            for k in range(len(mlflow_client.list_experiments()))
-            for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
+            run.info.run_id
+            for k in range(len(mlflow_client.search_experiments()))
+            for run in mlflow_client.search_runs(experiment_ids=[f"{k}"])
         ]
     )
 
@@ -191,9 +206,9 @@ def test_mlflow_metrics_logging_deactivation(tracking_uri, metrics):
 
     all_runs_id_end = set(
         [
-            run.run_id
-            for k in range(len(mlflow_client.list_experiments()))
-            for run in mlflow_client.list_run_infos(experiment_id=f"{k}")
+            run.info.run_id
+            for k in range(len(mlflow_client.search_experiments()))
+            for run in mlflow_client.search_runs(experiment_ids=[f"{k}"])
         ]
     )
 
@@ -205,3 +220,27 @@ def test_mlflow_metrics_logging_deactivation_is_bool():
 
     with pytest.raises(ValueError, match="_logging_activated must be a boolean"):
         mlflow_metrics_dataset._logging_activated = "hello"
+
+
+def test_mlflow_metrics_logging_and_loading_sqlite(sqlite_run_id: str, metrics):
+    mlflow_metrics_dataset = MlflowMetricsDataSet()
+    mlflow_metrics_dataset.save(metrics)
+
+    mlflow_metrics_dataset = MlflowMetricsDataSet(run_id=sqlite_run_id)
+    loaded_metrics = mlflow_metrics_dataset.load()
+    for metric in metrics:
+        for key in metrics[metric]:
+            assert metrics[metric][key] == loaded_metrics[metric][key]
+
+
+def test_mlflow_metrics_logging_and_loading_sqlite_with_prefix(
+    sqlite_run_id: str, metrics
+):
+    mlflow_metrics_dataset = MlflowMetricsDataSet(prefix="test")
+    mlflow_metrics_dataset.save(metrics)
+
+    mlflow_metrics_dataset = MlflowMetricsDataSet(run_id=sqlite_run_id, prefix="test")
+    loaded_metrics = mlflow_metrics_dataset.load()
+    for metric, keys in metrics.items():
+        for key in keys:
+            assert metrics[metric][key] == loaded_metrics[f"test.{metric}"][key]

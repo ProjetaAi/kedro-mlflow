@@ -1,12 +1,13 @@
 import os
 
 import mlflow
+import pytest
 import yaml
 from kedro.framework.session import KedroSession
 from kedro.framework.startup import bootstrap_project
 from mlflow.tracking import MlflowClient
 
-from kedro_mlflow.config.kedro_mlflow_config import KedroMlflowConfig, _validate_uri
+from kedro_mlflow.config.kedro_mlflow_config import KedroMlflowConfig, _get_uri
 
 
 def test_kedro_mlflow_config_init():
@@ -18,6 +19,7 @@ def test_kedro_mlflow_config_init():
             mlflow_tracking_uri=None,  # not setup, not modified yet
             mlflow_registry_uri=None,
             credentials=None,
+            connection=None,
         ),
         tracking=dict(
             disable_tracking=dict(pipelines=[]),
@@ -51,7 +53,7 @@ def test_kedro_mlflow_config_new_experiment_does_not_exists(
         config.setup(context)
 
     assert "exp1" in [
-        exp.name for exp in config.server._mlflow_client.list_experiments()
+        exp.name for exp in config.server._mlflow_client.search_experiments()
     ]
 
 
@@ -90,7 +92,7 @@ def test_kedro_mlflow_config_experiment_exists(kedro_project_with_mlflow_conf):
         config.setup(context)
 
     assert "exp1" in [
-        exp.name for exp in config.server._mlflow_client.list_experiments()
+        exp.name for exp in config.server._mlflow_client.search_experiments()
     ]
 
 
@@ -116,7 +118,7 @@ def test_kedro_mlflow_config_experiment_was_deleted(kedro_project_with_mlflow_co
         config.setup(context)
 
     assert "exp1" in [
-        exp.name for exp in config.server._mlflow_client.list_experiments()
+        exp.name for exp in config.server._mlflow_client.search_experiments()
     ]
 
 
@@ -138,23 +140,23 @@ def test_kedro_mlflow_config_setup_set_experiment_globally(
         config.setup(context)
 
     mlflow_client = MlflowClient(mlflow_tracking_uri)
-    runs_list_before_interactive_run = mlflow_client.list_run_infos(
-        config.tracking.experiment._experiment.experiment_id
+    runs_list_before_interactive_run = mlflow_client.search_runs(
+        [config.tracking.experiment._experiment.experiment_id]
     )
 
     with mlflow.start_run():
         mlflow.log_param("a", 1)
         my_run_id = mlflow.active_run().info.run_id
 
-    runs_list_after_interactive_run = mlflow_client.list_run_infos(
-        config.tracking.experiment._experiment.experiment_id
+    runs_list_after_interactive_run = mlflow_client.search_runs(
+        [config.tracking.experiment._experiment.experiment_id]
     )
 
     assert (
         len(runs_list_after_interactive_run) - len(runs_list_before_interactive_run)
         == 1
     )
-    assert runs_list_after_interactive_run[0].run_id == my_run_id
+    assert runs_list_after_interactive_run[0].info.run_id == my_run_id
 
 
 def test_kedro_mlflow_config_setup_set_tracking_uri(kedro_project_with_mlflow_conf):
@@ -246,32 +248,48 @@ def test_kedro_mlflow_config_setup_tracking_priority(kedro_project_with_mlflow_c
 
 def test_validate_uri_local_relative_path(kedro_project_with_mlflow_conf):
 
-    validated_uri = _validate_uri(
-        uri=r"mlruns", project_path=kedro_project_with_mlflow_conf
+    validated_uri = _get_uri(
+        attr="tracking_uri",
+        options={},
+        credentials={},
+        uri=r"mlruns",
+        project_path=kedro_project_with_mlflow_conf,
     )
     assert validated_uri == (kedro_project_with_mlflow_conf / "mlruns").as_uri()
 
 
 def test_validate_uri_local_absolute_posix(kedro_project_with_mlflow_conf, tmp_path):
 
-    validated_uri = _validate_uri(
-        uri=tmp_path.as_posix(), project_path=kedro_project_with_mlflow_conf
+    validated_uri = _get_uri(
+        attr="tracking_uri",
+        options={},
+        credentials={},
+        uri=tmp_path.as_posix(),
+        project_path=kedro_project_with_mlflow_conf,
     )
     assert validated_uri == tmp_path.as_uri()
 
 
 def test_validate_uri_local_absolute_uri(kedro_project_with_mlflow_conf, tmp_path):
 
-    validated_uri = _validate_uri(
-        uri=tmp_path.as_uri(), project_path=kedro_project_with_mlflow_conf
+    validated_uri = _get_uri(
+        credentials={},
+        options={},
+        attr="tracking_uri",
+        uri=tmp_path.as_uri(),
+        project_path=kedro_project_with_mlflow_conf,
     )
     assert validated_uri == tmp_path.as_uri()
 
 
 def test_kedro_mlflow_config_validate_uri_databricks(kedro_project_with_mlflow_conf):
     # databricks is a reseved keyword which should not be modified
-    config_uri = _validate_uri(
-        uri="databricks", project_path=kedro_project_with_mlflow_conf
+    config_uri = _get_uri(
+        attr="tracking_uri",
+        uri="databricks",
+        project_path=kedro_project_with_mlflow_conf,
+        options={},
+        credentials={},
     )
     assert config_uri == "databricks"
 
@@ -282,3 +300,23 @@ def test_from_dict_to_dict_idempotent(kedro_project_with_mlflow_conf):
     # modify config
     reloaded_config = KedroMlflowConfig.parse_obj(original_config_dict)
     assert config == reloaded_config
+
+
+def test_kedro_mlflow_config_connection_import_error(
+    kedro_project_with_mlflow_conf, mocker
+):
+    def error():
+        raise Exception("whoops!")
+
+    mocker.patch("kedro_mlflow.utils._load_plugins", return_value={"a": error})
+
+    with pytest.raises(
+        ImportError, match=".*Failed to load KedroMlflowConnection plugin 'a'"
+    ):
+        _get_uri(
+            attr="tracking_uri",
+            uri="a",
+            project_path=kedro_project_with_mlflow_conf,
+            options={},
+            credentials={},
+        )

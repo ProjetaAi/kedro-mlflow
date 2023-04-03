@@ -1,2 +1,3 @@
-from .mlflow_model_logger_dataset import MlflowModelLoggerDataSet
+from .mlflow_model_logger_dataset import MlflowModel, MlflowModelLoggerDataSet
 from .mlflow_model_saver_dataset import MlflowModelSaverDataSet
+from .mlflow_partitioned_model_logger_dataset import MlflowPartitionedModelLoggerDataSet
